@@ -59,17 +59,37 @@ unsigned char const bar [] = {
 };
 // size 41
 #define jump_len 12
-char const jump_dist [] = {
+signed char const jump_dist [] = {
     24, 16, 16, 8, 4, 1,
     -1, -4, -8, -16, -16, -24
 };
 
 
+signed char block_row[5] = {4, 2, 1, 5, 1};
+signed char block_col[5] = {25, 41, 65, 77, 85};
+
 unsigned int extend_TI;
 int doodle_traj_idx = 0;
-int doodle_now_row = 3, doodle_now_col = 24;
+signed char doodle_now_row = 3, doodle_now_col = 0;
+signed char doodle_pre_row = 3, doodle_pre_col = 0;
+int bar_shift = 0;
 int shift_cnt = 0;
+signed char lock_with_doodle = -1;
 #define shift_thres 0
+unsigned char random_num = 15;
+signed char random_range_sel = 0;
+unsigned char rand(char a, char b) {
+    char lsb = ((random_num >> 6) ^ (random_num >> 4) ^ (random_num >> 1)) & 1;
+    random_num = (random_num << 1) | (lsb); 
+    return a + (random_num % (b-a));
+}
+
+signed char min(signed char a, signed char b) {
+    return (a < b ? a : b);
+}
+signed char max(signed char a, signed char b) {
+    return (a > b ? a : b);
+}
 void T0_isr(void) __interrupt (1) {
     TH0 = (65536-1000) / 256;
     TL0 = (65536-1000) % 256;
@@ -102,9 +122,71 @@ void T0_isr(void) __interrupt (1) {
         else if (doodle_now_row == -1) doodle_now_row = 0;
         doodle_now_row = (doodle_now_row + 8) % 8;
 
-        doodle_traj_idx = (doodle_traj_idx + 1) % (jump_len);
         doodle_now_col += jump_dist[doodle_traj_idx];
+        doodle_traj_idx = (doodle_traj_idx + 1) % (jump_len);
+
+        OLED_SetCursor(0, 20);
+        for (int k = 0; k < 5; ++k) {
+            OLED_DisplayChar(block_col[k] / 10 + '0');
+            OLED_DisplayChar(block_col[k] % 10 + '0');
+            OLED_DisplayChar(' ');
+        }
+        // if (doodle_now_col < 0) OLED_DisplayChar('-');
+        // OLED_DisplayChar(doodle_now_col/10 + '0');
+        // OLED_DisplayChar(doodle_now_col%10 + '0');
+        // OLED_DisplayChar(' ');
+        // if (doodle_pre_col < 0) OLED_DisplayChar('-');
+        // OLED_DisplayChar(doodle_pre_col/10 + '0');
+        // OLED_DisplayChar(doodle_pre_col%10 + '0');
+        // OLED_DisplayChar(' ');
+        // OLED_DisplayChar(block_col[0] / 10 + '0');
+        // OLED_DisplayChar(block_col[0] % 10 + '0');
+        if (lock_with_doodle == -1) {
+            for (int k = 0; k < 5; ++k) {
+                if (doodle_now_row >= block_row[k]-doodle_row && doodle_now_row <= block_row[k]+bar_row) {
+                    if (doodle_pre_col > block_col[k] && doodle_now_col < block_col[k]) {
+                        if (bar_shift == 0 || block_col[k] - doodle_now_col < bar_shift) {
+                            lock_with_doodle = k;
+                        }
+                    }
+                }
+            }
+        }
+        else {
+            bar_shift = block_col[lock_with_doodle] - doodle_now_col; 
+        }
+        doodle_pre_row = doodle_now_row;
+        doodle_pre_col = doodle_now_col;
     }
+
+    // print bar
+    for (int k = 0; k < 5; ++k) {
+        for (int i = 0; i < bar_row; ++i) {
+            // clear last bar
+            OLED_SetCursor(block_row[k]+i, block_col[k]);
+            for (int j = 0; j < bar_col; ++j) {
+                oledSendData(0x00);
+            }
+                
+            
+            if (block_col[k]-bar_shift > 0) {
+                OLED_SetCursor(block_row[k]+i, block_col[k]-bar_shift);
+                for (int j = 0; j < bar_col; ++j) {
+                    oledSendData(bar[i*bar_col+j]);
+                }
+            }
+        }
+        block_col[k] -= bar_shift;
+        if (block_col[k] <= 0) {
+            block_col[k] = rand(50 + random_range_sel * 8, 80 + random_range_sel * 8);
+            random_range_sel = (random_range_sel + 1) % 5;
+        }
+    }
+    if (doodle_now_col == 0) {
+        bar_shift = 0;
+        lock_with_doodle = -1;
+    }
+    
     for (int i = 0; i < doodle_row; ++i) {
         OLED_SetCursor(doodle_now_row+i, doodle_now_col);
         for (int j = 0; j < doodle_col; ++j) {
@@ -126,12 +208,12 @@ void main(void)
     OLED_Init();		  // Check oled_i2c.c file for SCL,SDA pin connection
     MPU6050_INIT();
     OLED_Clear();
-
-    OLED_SetCursor(3, 120);
-    for (int i = 0; i < bar_row; ++i) {
-        OLED_SetCursor(3+i, 120);
-        for (int j = 0; j < bar_col; ++j) {
-            oledSendData(bar[i*bar_col+j]);
+    for (int k = 0; k < 5; ++k) {
+        for (int i = 0; i < bar_row; ++i) {
+            OLED_SetCursor(block_row[k]+i, block_col[k]);
+            for (int j = 0; j < bar_col; ++j) {
+                oledSendData(bar[i*bar_col+j]);
+            }
         }
     }
     
