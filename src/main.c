@@ -36,7 +36,7 @@ signed char const jump_dist [] = {
 };
 
 
-signed char block_row[5] = {4, 2, 1, 5, 3};
+signed char block_row[5] = {4, 2, 1, 1, 5};
 signed char block_col[5] = {25, 41, 65, 77, 85};
 
 unsigned int extend_TI;
@@ -236,12 +236,12 @@ void main(void)
             doodle_now_col += jump_dist[doodle_traj_idx];
             doodle_traj_idx = (doodle_traj_idx + 1) % (jump_len);
 
-            OLED_SetCursor(0, 20);
-            for (int k = 0; k < 5; ++k) {
-                OLED_DisplayChar(block_col[k] / 10 + '0');
-                OLED_DisplayChar(block_col[k] % 10 + '0');
-                OLED_DisplayChar(' ');
-            }
+            // OLED_SetCursor(0, 20);
+            // for (int k = 0; k < 5; ++k) {
+            //     OLED_DisplayChar(block_col[k] / 10 + '0');
+            //     OLED_DisplayChar(block_col[k] % 10 + '0');
+            //     OLED_DisplayChar(' ');
+            // }
             // if (doodle_now_col < 0) OLED_DisplayChar('-');
             // OLED_DisplayChar(doodle_now_col/10 + '0');
             // OLED_DisplayChar(doodle_now_col%10 + '0');
