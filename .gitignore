@@ -1,1 +1,4 @@
 obj/
+memory.map
+memory.x
+output.elf
