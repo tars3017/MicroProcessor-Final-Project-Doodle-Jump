@@ -32,4 +32,4 @@ To calculate how much should the screen scroll down, program will calcualte whic
 I draw the contour of character, numbers, and text using "Painter", and then turn them into hexidemal and save them.
 
 ### Demo
-![demo](https://youtube.com/shorts/NfYKixX7wlM?feature=share)
+https://youtube.com/shorts/NfYKixX7wlM?feature=share
